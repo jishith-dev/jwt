@@ -65,7 +65,7 @@ struct JWT {
     string headerJson =
       header.json()
 
-    int now =
+    long now =
       time.now()
 
     bool noTimestamp = false
@@ -76,7 +76,7 @@ struct JWT {
     }
 
     if (!noTimestamp) {
-      payload.setInt(
+      payload.setLong(
         "iat",
         now
       )
@@ -94,12 +94,10 @@ struct JWT {
         return ""
       }
 
-      int exp =
-        Int(
-          Long(now) + expiresIn
-        )
+      long exp =
+        now + expiresIn
 
-      payload.setInt(
+      payload.setLong(
         "exp",
         exp
       )
@@ -117,12 +115,10 @@ struct JWT {
         return ""
       }
 
-      int nbf =
-        Int(
-          Long(now) + notBefore
-        )
+      long nbf =
+        now + notBefore
 
-      payload.setInt(
+      payload.setLong(
         "nbf",
         nbf
       )
@@ -260,9 +256,11 @@ struct JWT {
         length(token)
       )
 
-    if (length(headerPart) == 0 ||
-        length(payloadPart) == 0 ||
-        length(signaturePart) == 0) {
+    if (
+      length(headerPart) == 0 ||
+      length(payloadPart) == 0 ||
+      length(signaturePart) == 0
+    ) {
       return result
     }
 
@@ -305,8 +303,10 @@ struct JWT {
     Json header
     header.parse(headerJson)
 
-    if (!header.has("alg") ||
-        !header.has("typ")) {
+    if (
+      !header.has("alg") ||
+      !header.has("typ")
+    ) {
       return result
     }
 
@@ -342,7 +342,7 @@ struct JWT {
     Map claims =
       payload.map()
 
-    int now =
+    long now =
       time.now()
 
     /*
@@ -389,25 +389,25 @@ struct JWT {
           "ignoreNotBefore"
         )
     }
-     
+
     /*
      * exp validation.
      */
 
-    if (claims.has("exp") &&
-        !ignoreExpiration) {
-
-      int exp =
-        claims.getInt("exp")
-
-      long currentTime =
-        Long(now)
+    if (
+      claims.has("exp") &&
+      !ignoreExpiration
+    ) {
+      long exp =
+        claims.getLong("exp")
 
       long expirationTime =
-        Long(exp)
+        exp
 
-      if (currentTime >=
-          expirationTime + tolerance) {
+      if (
+        now >=
+        expirationTime + tolerance
+      ) {
         return result
       }
     }
@@ -416,25 +416,25 @@ struct JWT {
      * nbf validation.
      */
 
-    if (claims.has("nbf") &&
-        !ignoreNotBefore) {
-
-      int nbf =
-        claims.getInt("nbf")
-
-      long currentTime =
-        Long(now)
+    if (
+      claims.has("nbf") &&
+      !ignoreNotBefore
+    ) {
+      long nbf =
+        claims.getLong("nbf")
 
       long notBeforeTime =
-        Long(nbf)
+        nbf
 
-      if (currentTime + tolerance <
-          notBeforeTime) {
+      if (
+        now + tolerance <
+        notBeforeTime
+      ) {
         return result
       }
     }
 
-     /*
+    /*
      * maxAge validation.
      *
      * Requires iat.
@@ -445,9 +445,7 @@ struct JWT {
 
     if (options.has("maxAge")) {
       long maxAge =
-        options.getLong(
-          "maxAge"
-        )
+        options.getLong("maxAge")
 
       if (maxAge < 0L) {
         return result
@@ -457,20 +455,19 @@ struct JWT {
         return result
       }
 
-      int iat =
-        claims.getInt("iat")
-
-      long currentTime =
-        Long(now)
+      long iat =
+        claims.getLong("iat")
 
       long issuedAt =
-        Long(iat)
+        iat
 
       long age =
-        currentTime - issuedAt
+        now - issuedAt
 
-      if (age >
-          maxAge + tolerance) {
+      if (
+        age >
+        maxAge + tolerance
+      ) {
         return result
       }
     }
@@ -484,8 +481,10 @@ struct JWT {
         return result
       }
 
-      if (claims.getString("iss") !=
-          options.getString("issuer")) {
+      if (
+        claims.getString("iss") !=
+        options.getString("issuer")
+      ) {
         return result
       }
     }
@@ -499,8 +498,10 @@ struct JWT {
         return result
       }
 
-      if (claims.getString("aud") !=
-          options.getString("audience")) {
+      if (
+        claims.getString("aud") !=
+        options.getString("audience")
+      ) {
         return result
       }
     }
@@ -514,8 +515,10 @@ struct JWT {
         return result
       }
 
-      if (claims.getString("sub") !=
-          options.getString("subject")) {
+      if (
+        claims.getString("sub") !=
+        options.getString("subject")
+      ) {
         return result
       }
     }
@@ -529,8 +532,10 @@ struct JWT {
         return result
       }
 
-      if (claims.getString("jti") !=
-          options.getString("jwtid")) {
+      if (
+        claims.getString("jti") !=
+        options.getString("jwtid")
+      ) {
         return result
       }
     }

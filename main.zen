@@ -1,0 +1,548 @@
+/*
+ * JWT v1.0.0
+ * JSON Web Token library for Zen.
+ * HS256 signing and verification.
+ *
+ * Supports:
+ * - HS256
+ * - iat
+ * - exp / expiresIn
+ * - nbf / notBefore
+ * - issuer
+ * - audience
+ * - subject
+ * - jwtid
+ * - maxAge
+ * - clockTolerance
+ * - ignoreExpiration
+ * - ignoreNotBefore
+ * - noTimestamp
+ *
+ * author: Jishith M P
+ */
+
+fn stringToBytes(string s) List<byte> {
+  List<byte> bytes
+
+  loop (int i = 0, i < length(s), i = i + 1) {
+    bytes.push(Byte(s[i]))
+  }
+
+  return bytes
+}
+
+fn bytesToString(List<byte> bytes) string {
+  string result = ""
+
+  loop (int i = 0, i < bytes.length, i = i + 1) {
+    result = result + String(bytes[i])
+  }
+
+  return result
+}
+
+struct JWT {
+  string secret
+
+  sign(Map payload) string {
+    Map options
+
+    return this.signWithOptions(
+      payload,
+      options
+    )
+  }
+
+  signWithOptions(
+    Map payload,
+    Map options
+  ) string {
+    Map header
+
+    header.setString("alg", "HS256")
+    header.setString("typ", "JWT")
+
+    string headerJson =
+      header.json()
+
+    int now =
+      time.now()
+
+    bool noTimestamp = false
+
+    if (options.has("noTimestamp")) {
+      noTimestamp =
+        options.getBool("noTimestamp")
+    }
+
+    if (!noTimestamp) {
+      payload.setInt(
+        "iat",
+        now
+      )
+    }
+
+    /*
+     * expiresIn is a Long duration
+     * expressed in seconds.
+     */
+    if (options.has("expiresIn")) {
+      long expiresIn =
+        options.getLong("expiresIn")
+
+      if (expiresIn <= 0L) {
+        return ""
+      }
+
+      int exp =
+        Int(
+          Long(now) + expiresIn
+        )
+
+      payload.setInt(
+        "exp",
+        exp
+      )
+    }
+
+    /*
+     * notBefore is a Long duration
+     * expressed in seconds.
+     */
+    if (options.has("notBefore")) {
+      long notBefore =
+        options.getLong("notBefore")
+
+      if (notBefore < 0L) {
+        return ""
+      }
+
+      int nbf =
+        Int(
+          Long(now) + notBefore
+        )
+
+      payload.setInt(
+        "nbf",
+        nbf
+      )
+    }
+
+    if (options.has("issuer")) {
+      payload.setString(
+        "iss",
+        options.getString("issuer")
+      )
+    }
+
+    if (options.has("audience")) {
+      payload.setString(
+        "aud",
+        options.getString("audience")
+      )
+    }
+
+    if (options.has("subject")) {
+      payload.setString(
+        "sub",
+        options.getString("subject")
+      )
+    }
+
+    if (options.has("jwtid")) {
+      payload.setString(
+        "jti",
+        options.getString("jwtid")
+      )
+    }
+
+    string payloadJson =
+      payload.json()
+
+    string headerPart =
+      crypto.base64UrlEncode(
+        stringToBytes(headerJson)
+      )
+
+    string payloadPart =
+      crypto.base64UrlEncode(
+        stringToBytes(payloadJson)
+      )
+
+    string data =
+      headerPart + "." + payloadPart
+
+    List<byte> signature =
+      crypto.hmacSha256(
+        this.secret,
+        data
+      )
+
+    string signaturePart =
+      crypto.base64UrlEncode(
+        signature
+      )
+
+    return data + "." + signaturePart
+  }
+
+  verify(string token) Map {
+    Map options
+
+    return this.verifyWithOptions(
+      token,
+      options
+    )
+  }
+
+  verifyWithOptions(
+    string token,
+    Map options
+  ) Map {
+    Map result
+
+    /*
+     * JWT must contain exactly:
+     *
+     * header.payload.signature
+     */
+
+    int firstDot =
+      indexOf(
+        token,
+        "."
+      )
+
+    if (firstDot < 0) {
+      return result
+    }
+
+    string remaining =
+      slice(
+        token,
+        firstDot + 1,
+        length(token)
+      )
+
+    int relativeSecondDot =
+      indexOf(
+        remaining,
+        "."
+      )
+
+    if (relativeSecondDot < 0) {
+      return result
+    }
+
+    int secondDot =
+      firstDot +
+      1 +
+      relativeSecondDot
+
+    string headerPart =
+      slice(
+        token,
+        0,
+        firstDot
+      )
+
+    string payloadPart =
+      slice(
+        token,
+        firstDot + 1,
+        secondDot
+      )
+
+    string signaturePart =
+      slice(
+        token,
+        secondDot + 1,
+        length(token)
+      )
+
+    if (length(headerPart) == 0 ||
+        length(payloadPart) == 0 ||
+        length(signaturePart) == 0) {
+      return result
+    }
+
+    /*
+     * Verify signature.
+     */
+
+    string data =
+      headerPart + "." + payloadPart
+
+    List<byte> expected =
+      crypto.hmacSha256(
+        this.secret,
+        data
+      )
+
+    string expectedPart =
+      crypto.base64UrlEncode(
+        expected
+      )
+
+    if (signaturePart != expectedPart) {
+      return result
+    }
+
+    /*
+     * Decode header.
+     */
+
+    List<byte> headerBytes =
+      crypto.base64UrlDecode(
+        headerPart
+      )
+
+    string headerJson =
+      bytesToString(
+        headerBytes
+      )
+
+    Json header
+    header.parse(headerJson)
+
+    if (!header.has("alg") ||
+        !header.has("typ")) {
+      return result
+    }
+
+    /*
+     * Algorithm confusion protection.
+     */
+
+    if (header.getString("alg") != "HS256") {
+      return result
+    }
+
+    if (header.getString("typ") != "JWT") {
+      return result
+    }
+
+    /*
+     * Decode payload.
+     */
+
+    List<byte> payloadBytes =
+      crypto.base64UrlDecode(
+        payloadPart
+      )
+
+    string payloadJson =
+      bytesToString(
+        payloadBytes
+      )
+
+    Json payload
+    payload.parse(payloadJson)
+
+    Map claims =
+      payload.map()
+
+    int now =
+      time.now()
+
+    /*
+     * Clock tolerance.
+     *
+     * Long, in seconds.
+     */
+
+    long tolerance = 0L
+
+    if (options.has("clockTolerance")) {
+      tolerance =
+        options.getLong(
+          "clockTolerance"
+        )
+
+      if (tolerance < 0L) {
+        return result
+      }
+    }
+
+    /*
+     * Ignore expiration.
+     */
+
+    bool ignoreExpiration = false
+
+    if (options.has("ignoreExpiration")) {
+      ignoreExpiration =
+        options.getBool(
+          "ignoreExpiration"
+        )
+    }
+
+    /*
+     * Ignore not-before.
+     */
+
+    bool ignoreNotBefore = false
+
+    if (options.has("ignoreNotBefore")) {
+      ignoreNotBefore =
+        options.getBool(
+          "ignoreNotBefore"
+        )
+    }
+     
+    /*
+     * exp validation.
+     */
+
+    if (claims.has("exp") &&
+        !ignoreExpiration) {
+
+      int exp =
+        claims.getInt("exp")
+
+      long currentTime =
+        Long(now)
+
+      long expirationTime =
+        Long(exp)
+
+      if (currentTime >=
+          expirationTime + tolerance) {
+        return result
+      }
+    }
+
+    /*
+     * nbf validation.
+     */
+
+    if (claims.has("nbf") &&
+        !ignoreNotBefore) {
+
+      int nbf =
+        claims.getInt("nbf")
+
+      long currentTime =
+        Long(now)
+
+      long notBeforeTime =
+        Long(nbf)
+
+      if (currentTime + tolerance <
+          notBeforeTime) {
+        return result
+      }
+    }
+
+     /*
+     * maxAge validation.
+     *
+     * Requires iat.
+     *
+     * maxAge is a Long duration
+     * expressed in seconds.
+     */
+
+    if (options.has("maxAge")) {
+      long maxAge =
+        options.getLong(
+          "maxAge"
+        )
+
+      if (maxAge < 0L) {
+        return result
+      }
+
+      if (!claims.has("iat")) {
+        return result
+      }
+
+      int iat =
+        claims.getInt("iat")
+
+      long currentTime =
+        Long(now)
+
+      long issuedAt =
+        Long(iat)
+
+      long age =
+        currentTime - issuedAt
+
+      if (age >
+          maxAge + tolerance) {
+        return result
+      }
+    }
+
+    /*
+     * issuer validation.
+     */
+
+    if (options.has("issuer")) {
+      if (!claims.has("iss")) {
+        return result
+      }
+
+      if (claims.getString("iss") !=
+          options.getString("issuer")) {
+        return result
+      }
+    }
+
+    /*
+     * audience validation.
+     */
+
+    if (options.has("audience")) {
+      if (!claims.has("aud")) {
+        return result
+      }
+
+      if (claims.getString("aud") !=
+          options.getString("audience")) {
+        return result
+      }
+    }
+
+    /*
+     * subject validation.
+     */
+
+    if (options.has("subject")) {
+      if (!claims.has("sub")) {
+        return result
+      }
+
+      if (claims.getString("sub") !=
+          options.getString("subject")) {
+        return result
+      }
+    }
+
+    /*
+     * JWT ID validation.
+     */
+
+    if (options.has("jwtid")) {
+      if (!claims.has("jti")) {
+        return result
+      }
+
+      if (claims.getString("jti") !=
+          options.getString("jwtid")) {
+        return result
+      }
+    }
+
+    return claims
+  }
+}
+
+fn create(string secret) JWT {
+  return {
+    secret: secret
+  }
+}
+
+export(JWT, create)

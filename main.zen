@@ -399,8 +399,9 @@ struct JWT {
       !ignoreExpiration
     ) {
       long exp =
-        claims.getLong("exp")
-
+  Long(
+    claims.getInt("exp")
+  )
       long expirationTime =
         exp
 
@@ -421,8 +422,9 @@ struct JWT {
       !ignoreNotBefore
     ) {
       long nbf =
-        claims.getLong("nbf")
-
+  Long(
+    claims.getInt("nbf")
+  )
       long notBeforeTime =
         nbf
 
@@ -456,8 +458,9 @@ struct JWT {
       }
 
       long iat =
-        claims.getLong("iat")
-
+  Long(
+    claims.getInt("iat")
+  )
       long issuedAt =
         iat
 

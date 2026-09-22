@@ -21,26 +21,6 @@
  * author: Jishith M P
  */
 
-fn stringToBytes(string s) List<byte> {
-  List<byte> bytes
-
-  loop (int i = 0, i < length(s), i = i + 1) {
-    bytes.push(Byte(s[i]))
-  }
-
-  return bytes
-}
-
-fn bytesToString(List<byte> bytes) string {
-  string result = ""
-
-  loop (int i = 0, i < bytes.length, i = i + 1) {
-    result = result + String(bytes[i])
-  }
-
-  return result
-}
-
 struct JWT {
   string secret
 

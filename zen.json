@@ -1,6 +1,6 @@
 {
   "name": "jwt",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Jishith-dev",
   "repo": "https://github.com/Jishith-dev/jwt",
   "description": "JWT library for Zen with HS256 signing and verification, Base64URL support, token expiration, standard claims, lifetime validation, clock tolerance, and invalid-token detection.",

@@ -1,0 +1,142 @@
+import (JWT) from "lib.zen"
+
+JWT j
+j.setSecret("mysecret123")
+
+// --- basic sign/verify ---
+Map payload
+payload.setString("user", "achu")
+payload.setLong("id", 1L)
+
+string token = j.sign(payload)
+screen(token)
+
+Map claims = j.verify(token)
+screen(claims.has("user"))
+screen(claims.getString("user"))
+screen(claims.has("id"))
+screen(claims.getLong("id"))
+screen(claims.has("iat"))
+
+// --- expiresIn + issuer + audience + subject + jwtid ---
+Map payload2
+payload2.setString("user", "achu")
+
+Map signOpts
+signOpts.setLong("expiresIn", 3600L)
+signOpts.setString("issuer", "zen-auth")
+signOpts.setString("audience", "zen-app")
+signOpts.setString("subject", "user-1")
+signOpts.setString("jwtid", "abc-123")
+
+string token2 = j.signWithOptions(payload2, signOpts)
+screen(token2)
+
+Map verifyOpts
+verifyOpts.setString("issuer", "zen-auth")
+verifyOpts.setString("audience", "zen-app")
+verifyOpts.setString("subject", "user-1")
+verifyOpts.setString("jwtid", "abc-123")
+
+Map claims2 = j.verifyWithOptions(token2, verifyOpts)
+screen(claims2.has("exp"))
+screen(claims2.has("iss"))
+screen(claims2.getString("iss"))
+screen(claims2.has("aud"))
+screen(claims2.has("sub"))
+screen(claims2.has("jti"))
+
+// wrong issuer: should fail
+Map badOpts
+badOpts.setString("issuer", "wrong-issuer")
+Map failedClaims = j.verifyWithOptions(token2, badOpts)
+screen(failedClaims.has("user"))
+
+// tampered signature: should fail
+string tampered = token2 + "x"
+Map tamperedClaims = j.verify(tampered)
+screen(tamperedClaims.has("user"))
+
+// expiresIn <= 0: should return empty string
+Map badExpOpts
+badExpOpts.setLong("expiresIn", 0L)
+string badToken = j.signWithOptions(payload2, badExpOpts)
+screen(badToken)
+
+// --- noTimestamp ---
+Map payload3
+payload3.setString("user", "achu")
+
+Map noTsOpts
+noTsOpts.setBool("noTimestamp", true)
+
+string token3 = j.signWithOptions(payload3, noTsOpts)
+Map claims3 = j.verify(token3)
+screen(claims3.has("iat"))
+
+// --- notBefore future + ignoreNotBefore bypass ---
+Map payload4
+payload4.setString("user", "achu")
+
+Map nbfOpts
+nbfOpts.setLong("notBefore", 3600L)
+
+string token4 = j.signWithOptions(payload4, nbfOpts)
+Map claims4 = j.verify(token4)
+screen(claims4.has("user"))
+
+Map ignoreNbfOpts
+ignoreNbfOpts.setBool("ignoreNotBefore", true)
+Map claims4b = j.verifyWithOptions(token4, ignoreNbfOpts)
+screen(claims4b.has("user"))
+
+// --- maxAge pass on fresh token ---
+Map payload5
+payload5.setString("user", "achu")
+string token5 = j.sign(payload5)
+
+Map maxAgeOpts
+maxAgeOpts.setLong("maxAge", 3600L)
+Map claims5 = j.verifyWithOptions(token5, maxAgeOpts)
+screen(claims5.has("user"))
+
+// maxAge without iat: should fail
+Map payload6
+payload6.setString("user", "achu")
+
+Map noTsOpts2
+noTsOpts2.setBool("noTimestamp", true)
+string token6 = j.signWithOptions(payload6, noTsOpts2)
+Map claims6 = j.verifyWithOptions(token6, maxAgeOpts)
+screen(claims6.has("user"))
+
+// negative notBefore on sign: empty string
+Map badNbfOpts
+badNbfOpts.setLong("notBefore", -1L)
+string badToken1 = j.signWithOptions(payload, badNbfOpts)
+screen(badToken1)
+
+// negative clockTolerance: reject
+Map badToleranceOpts
+badToleranceOpts.setLong("clockTolerance", -1L)
+Map claims7 = j.verifyWithOptions(token5, badToleranceOpts)
+screen(claims7.has("user"))
+
+// negative maxAge: reject
+Map badMaxAgeOpts
+badMaxAgeOpts.setLong("maxAge", -1L)
+Map claims8 = j.verifyWithOptions(token5, badMaxAgeOpts)
+screen(claims8.has("user"))
+
+// --- expiration (10s window) ---
+Map payload7
+payload7.setString("user", "achu")
+
+Map expOpts
+expOpts.setLong("expiresIn", 10L)
+
+string token7 = j.signWithOptions(payload7, expOpts)
+screen(token7)
+
+Map claims9 = j.verify(token7)
+screen(claims9.has("user"))

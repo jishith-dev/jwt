@@ -1,5 +1,7 @@
 # JWT
 
+Author: Jishith M P
+
 JWT (JSON Web Token) library for Zen.
 
 Provides HS256 token signing and verification with standard JWT claims and token lifetime support.
@@ -30,15 +32,16 @@ zen install jwt
 ## Import
 
 ~~~text
-import (JWT, create) from "jwt"
+import (JWT) from "jwt"
 ~~~
 
 ## Basic Usage
 
 ~~~text
-import (JWT, create) from "jwt"
+import (JWT) from "jwt"
 
-JWT jwt = create("my-secret")
+JWT jwt
+jwt.setSecret("my-secret")
 
 Map payload
 payload.setString("name", "Jishith")
@@ -78,7 +81,6 @@ screen(token)
 
 ~~~text
 Map options
-
 options.setString("issuer", "zen-app")
 options.setString("audience", "users")
 options.setString("subject", "user-123")
@@ -148,26 +150,10 @@ For claim validation:
 
 ~~~text
 Map verifyOptions
-
-verifyOptions.setString(
-  "issuer",
-  "zen-app"
-)
-
-verifyOptions.setString(
-  "audience",
-  "users"
-)
-
-verifyOptions.setString(
-  "subject",
-  "user-123"
-)
-
-verifyOptions.setString(
-  "jwtid",
-  "token-001"
-)
+verifyOptions.setString("issuer", "zen-app")
+verifyOptions.setString("audience", "users")
+verifyOptions.setString("subject", "user-123")
+verifyOptions.setString("jwtid", "token-001")
 
 Map verified =
   jwt.verifyWithOptions(
@@ -182,11 +168,7 @@ debug.pretty(verified)
 
 ~~~text
 Map options
-
-options.setBool(
-  "ignoreExpiration",
-  true
-)
+options.setBool("ignoreExpiration", true)
 
 Map result =
   jwt.verifyWithOptions(
@@ -199,11 +181,7 @@ Map result =
 
 ~~~text
 Map options
-
-options.setBool(
-  "ignoreNotBefore",
-  true
-)
+options.setBool("ignoreNotBefore", true)
 
 Map result =
   jwt.verifyWithOptions(
@@ -216,11 +194,7 @@ Map result =
 
 ~~~text
 Map options
-
-options.setLong(
-  "clockTolerance",
-  5L
-)
+options.setLong("clockTolerance", 5L)
 ~~~
 
 The value is specified in seconds.
@@ -229,11 +203,7 @@ The value is specified in seconds.
 
 ~~~text
 Map options
-
-options.setLong(
-  "maxAge",
-  3600L
-)
+options.setLong("maxAge", 3600L)
 ~~~
 
 `maxAge` limits the maximum age of a token based on its `iat` claim.
@@ -244,23 +214,19 @@ By default, `iat` is automatically added.
 
 ~~~text
 Map options
-
-options.setBool(
-  "noTimestamp",
-  true
-)
+options.setBool("noTimestamp", true)
 ~~~
 
 ## API
 
-### create
+### setSecret
 
 ~~~text
-JWT jwt =
-  create("my-secret")
+JWT jwt
+jwt.setSecret("my-secret")
 ~~~
 
-Creates a JWT instance using the supplied secret.
+Sets the HMAC secret used for signing and verification.
 
 ### sign
 
@@ -345,10 +311,10 @@ JWTs are authenticated using HMAC-SHA256 (HS256).
 
 Never expose the signing secret to untrusted clients.
 
+## License
+
+MIT
+
 ## Version
 
-1.0.0
-
-## Author
-
-Jishith M P
+1.0.2

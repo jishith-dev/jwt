@@ -1,5 +1,5 @@
 /*
- * JWT v1.0.0
+ * JWT v1.0.2
  * JSON Web Token library for Zen.
  * HS256 signing and verification.
  *
@@ -22,7 +22,11 @@
  */
 
 struct JWT {
-  string secret
+  private string secret
+
+  setSecret(string s) void {
+    this.secret = s
+  }
 
   sign(Map payload) string {
     Map options
@@ -380,7 +384,7 @@ struct JWT {
     ) {
       long exp =
   Long(
-    claims.getInt("exp")
+    claims.getLong("exp")
   )
       long expirationTime =
         exp
@@ -403,7 +407,7 @@ struct JWT {
     ) {
       long nbf =
   Long(
-    claims.getInt("nbf")
+    claims.getLong("nbf")
   )
       long notBeforeTime =
         nbf
@@ -439,7 +443,7 @@ struct JWT {
 
       long iat =
   Long(
-    claims.getInt("iat")
+    claims.getLong("iat")
   )
       long issuedAt =
         iat
@@ -527,10 +531,4 @@ struct JWT {
   }
 }
 
-fn create(string secret) JWT {
-  return {
-    secret: secret
-  }
-}
-
-export(JWT, create)
+export(JWT)
